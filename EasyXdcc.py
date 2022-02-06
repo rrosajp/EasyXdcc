@@ -23,15 +23,13 @@ class t_bot:
             return False
 
     def add_pack(self, num_pack):
-        if (type(num_pack) == int):
-            if not num_pack in self.packs:
-                self.packs.append(num_pack)
-                self.packs.sort(reverse=True)
+        if (type(num_pack) == int) and num_pack not in self.packs:
+            self.packs.append(num_pack)
+            self.packs.sort(reverse=True)
 
     def del_pack(self, num_pack):
-         if (type(num_pack) == int):
-            if self.packs.__contains__(num_pack):
-                del self.packs[self.packs.index(num_pack)]
+        if (type(num_pack) == int) and self.packs.__contains__(num_pack):
+            del self.packs[self.packs.index(num_pack)]
 
     def pop(self):
         return self.packs.pop()
@@ -40,15 +38,14 @@ class t_bot:
         return len(self.packs)
 
     def isActive(self):
-        list = xchat.get_list("dcc")
-        if (list):
+        if list := xchat.get_list("dcc"):
             for i in list:
                 if i.nick == self.name:
                     return (i.status == 0) | (i.status == 1) | (i.status == 4)
         return False
 
     def __repr__(self):
-        bot_str = "Bot : "+self.name+" [ "+self.serv+", "+self.chan+"]"+"\n"
+        bot_str = f'Bot : {self.name} [ {self.serv}, {self.chan}]' + "\n"
         for pack in reversed(self.packs):
             bot_str += "    #"+str(pack)+"\n"
         return bot_str
@@ -58,10 +55,7 @@ class bot_queue:
         self.bots = []
 
     def search(self, name, chan, serv):
-        for i in self.bots:
-            if (i.match(name, chan, serv)):
-                return i
-        return None
+        return next((i for i in self.bots if (i.match(name, chan, serv))), None)
 
     def add(self, new_bot):
         if isinstance(new_bot, t_bot):
@@ -70,14 +64,12 @@ class bot_queue:
                     return
             self.bots.append(new_bot)
 
-    def del_bot (self, bot):
-         if isinstance(bot, t_bot):
-             if bot in self.bots:
-                 del self.bots[self.bots.index(bot)]
+    def del_bot(self, bot):
+        if isinstance(bot, t_bot) and bot in self.bots:
+            del self.bots[self.bots.index(bot)]
 
-    def __repr__ (self):
-        queue_str = "\n"
-        queue_str += "*****************************\n"
+    def __repr__(self):
+        queue_str = "\n" + "*****************************\n"
         queue_str += "*       Queue EasyXdcc      *\n"
         queue_str += "*****************************\n"
         queue_str += "\n"
@@ -91,59 +83,61 @@ class bot_queue:
         return queue_str
 
     def save(self, file_name):
-        if (type(file_name) == str):
+        if type(file_name) != str:
+            return
+        try:
+            file = open(file_name,'wt')
             try:
-                file = open(file_name,'wt')
-                try:
-                    for bot in self.bots:
-                        file.write(getattr(bot,"name")+"\n")
-                        file.write(getattr(bot,"serv")+"\n")
-                        file.write(getattr(bot,"chan")+"\n")
-                        for pack in getattr(bot,"packs"):
-                            file.write(str(pack)+"\n")
-                        file.write("\n")
-                finally:
-                    file.close()
-            except IOError:
-                pass
+                for bot in self.bots:
+                    file.write(getattr(bot,"name")+"\n")
+                    file.write(getattr(bot,"serv")+"\n")
+                    file.write(getattr(bot,"chan")+"\n")
+                    for pack in getattr(bot,"packs"):
+                        file.write(str(pack)+"\n")
+                    file.write("\n")
+            finally:
+                file.close()
+        except IOError:
+            pass
 
     def load(self,file_name):
+        if type(file_name) != str:
+            return
         strip_str = "\n\r"
-        if (type(file_name) == str):
+        try:
+            file = open(file_name,'rt')
             try:
-                file = open(file_name,'rt')
-                try:
-                    etat=0
-                    for buffer in file.readlines():
-                       if etat==0:
-                           name = buffer.strip(strip_str)
-                           etat = 1
-                       elif etat==1:
-                           serv = buffer.strip(strip_str)
-                           etat = 2
-                       elif etat==2:
-                           chan = buffer.strip(strip_str)
-                           etat = 3
-                       elif etat==3:
-                           bot = t_bot(name,serv,chan)
-                           self.add(bot)
-                           pack = buffer.strip(strip_str)
-                           if pack == "":
-                               etat=0
-                           else:
-                               bot.add_pack(int(pack))
-                               etat=4
+                etat=0
+                for buffer in file.readlines():
+                   if etat==0:
+                       name = buffer.strip(strip_str)
+                       etat = 1
+                   elif etat==1:
+                       serv = buffer.strip(strip_str)
+                       etat = 2
+                   elif etat==2:
+                       chan = buffer.strip(strip_str)
+                       etat = 3
+                   elif etat==3:
+                       bot = t_bot(name,serv,chan)
+                       self.add(bot)
+                       pack = buffer.strip(strip_str)
+                       if pack == "":
+                           etat=0
                        else:
-                           pack = buffer.strip(strip_str)
-                           if pack == "":
-                               etat=0
-                           else:
-                              bot.add_pack(int(pack))
+                           bot.add_pack(int(pack))
+                           etat=4
+                   else:
+                       pack = buffer.strip(strip_str)
+                       if pack == "":
+                           etat=0
+                       else:
+                          bot.add_pack(int(pack))
 
-                finally:
-                    file.close()
-            except IOError:
-                pass
+            finally:
+                file.close()
+        except IOError:
+            pass
 
     def delqueue(self,file_name):
         if (type(file_name) == str):
@@ -163,15 +157,13 @@ class bot_queue:
             if servchan.__contains__(getattr(bot,"serv")):
                 servchan[servchan.index(getattr(bot,"serv")) + 1].append(getattr(bot,"chan"))
             else:
-                servchan.append(getattr(bot,"serv"))
-                servchan.append([getattr(bot,"chan")])
-
+                servchan.extend((getattr(bot,"serv"), [getattr(bot,"chan")]))
         for i in range(0,len(servchan),2):
             servs = ""
             for serv in servchan[i+1]:
                 servs=servs+serv+","
             servs = servs.strip(",")
-            xchat.command("servchan "+servchan[i]+" 6667 "+servs)
+            xchat.command(f'servchan {servchan[i]} 6667 {servs}')
 
 def get_bot_current_chan(bot_name):
     global queue
@@ -319,20 +311,20 @@ def seebotqueue(bot_name):
     return xchat.EAT_ALL
 
 def show_auto():
-    if os.path.exists(sav_dir + "autostart"):
+    if os.path.exists(f'{sav_dir}autostart'):
         print("EasyXdcc : auto-start is currently ON")
     else:
         print("EasyXdcc : auto-start is currently OFF")
     return xchat.EAT_ALL
 
 def toggle_auto(switch):
-    if 'on' == switch:
-        if not os.path.exists(sav_dir + "autostart"):
+    if switch == 'on':
+        if not os.path.exists(f'{sav_dir}autostart'):
             file = open(sav_dir + "autostart", 'wt')
             file.close()
         xchat.command ("MENU -t1 ADD \"EasyXdcc/Auto-Start\" \"xdcc auto on\" \"xdcc auto off\"")
         print("EasyXdcc : auto-start enabled")
-    if 'off' == switch:
+    if switch == 'off':
         if os.path.exists(sav_dir + "autostart"):
             os.remove(sav_dir + "autostart")
         xchat.command ("MENU -t0 ADD \"EasyXdcc/Auto-Start\" \"xdcc auto on\" \"xdcc auto off\"")
@@ -418,7 +410,7 @@ def rmbot(bot_name):
         bot = search_bot_current_chan(bot_name)
         if bot is not None:
             queue.del_bot(bot)
-        print("EasyXdcc : "+bot_name+" removed from queue")
+        print(f'EasyXdcc : {bot_name} removed from queue')
     return xchat.EAT_ALL
 
 def save():
@@ -464,7 +456,7 @@ def stop():
 
 def launch_dl(userdata):
     global queue, my_hook
-    if None == xchat.get_info("server"):
+    if xchat.get_info("server") is None:
         xchat.unhook(my_hook)
         my_hook = xchat.hook_timer(10000,server_check)
     else:
@@ -489,10 +481,10 @@ def launch_dl(userdata):
 
 def server_check(userdata = None):
     global my_hook, no_server
-    if 0 == no_server:
+    if no_server == 0:
         print("EasyXdcc : waiting for connection")
         no_server = 1
-    if None != xchat.get_info("server"):
+    if xchat.get_info("server") != None:
         xchat.unhook(my_hook)
         my_hook = xchat.hook_timer(10000,launch_dl)
         no_server = 0
@@ -513,19 +505,19 @@ try:
     try:
         user = cmd.readlines()
         user = user[0].strip("\n")
-        if 'Windows' == comp:
+        if comp == 'Windows':
             user = user.split("\\")[1]
     finally:
         cmd.close()
 except IOError:
     pass
 
-if 'Windows' == comp:
-    sav_dir = "C:/Users/"+user+"/.config/EasyXdcc/"
+if comp == 'Windows':
+    sav_dir = f'C:/Users/{user}/.config/EasyXdcc/'
 else:
-    sav_dir = "/home/"+user+"/.config/EasyXdcc/"
+    sav_dir = f'/home/{user}/.config/EasyXdcc/'
 check_dirs(sav_dir)
-sav_file = sav_dir + "queue"
+sav_file = f'{sav_dir}queue'
 
 xchat.hook_command("XDCC", idx_EasyXdcc, help="/XDCC <cmd>")
 xchat.command ("MENU -p5 ADD EasyXdcc")
@@ -536,7 +528,7 @@ xchat.command ("MENU ADD \"EasyXdcc/Save\" \"xdcc save\"")
 xchat.command ("MENU ADD \"EasyXdcc/Load\" \"xdcc load\"")
 xchat.command ("MENU ADD \"EasyXdcc/Help\" \"xdcc help\"")
 
-if os.path.exists(sav_dir + "autostart"):
+if os.path.exists(f'{sav_dir}autostart'):
     xchat.command ("MENU -t1 ADD \"EasyXdcc/Auto-Start\" \"xdcc auto on\" \"xdcc auto off\"")
 else:
     xchat.command ("MENU -t0 ADD \"EasyXdcc/Auto-Start\" \"xdcc auto on\" \"xdcc auto off\"")
